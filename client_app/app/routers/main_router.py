@@ -10,6 +10,12 @@ from app.dependencies import get_db
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+
+# Router con prefijo para el API Gateway
+router = APIRouter(
+    prefix="/client-service",   # todas las rutas estarán bajo este prefijo
+    tags=["Client Service"]
+)
 # ------------------------------------------------------------------------------------
 # Health check
 # ------------------------------------------------------------------------------------
@@ -39,6 +45,7 @@ async def create_client(
     db: AsyncSession = Depends(get_db)
 ):
     """Create a new client."""
+    """ Devuelve el id"""
     logger.debug("POST '/clients' endpoint called.")
     return await crud.create_client(db, client)
 

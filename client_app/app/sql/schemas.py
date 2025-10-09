@@ -17,7 +17,7 @@ class ClientBase(BaseModel):
     name: str = Field(..., example="Juan Pérez")
     email: str = Field(..., example="juan@example.com")
     phone: Optional[str] = Field(None, example="+34 600 123 456")
-
+    payment: float = Field(..., example=199.99)
 
 class ClientCreate(ClientBase):
     """Schema para crear cliente (entrada POST)."""

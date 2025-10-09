@@ -16,8 +16,10 @@ async def get_db():
     try:
         yield db
         await db.commit()
-    except:
+    except Exception as e:
+        logger.error(f"Database error: {e}")
         await db.rollback()
+        raise   # <-- importantísimo: relanza el error
     finally:
         await db.close()
 
