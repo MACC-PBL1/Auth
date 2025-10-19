@@ -7,3 +7,14 @@ SQLAlchemy~=2.0
 aiosqlite~=0.20
 coloredlogs~=15.0
 PyYAML~=6.0
+
+bcrypt~=4.2             # Hash seguro de contraseñas
+PyJWT~=2.9              # Creación/validación de JWT
+pycryptodome~=3.21      # Generación de claves RSA (private/public)
+python-multipart~=0.0.9 # Necesario si en algún momento aceptas formularios (login, upload)
+
+httpx~=0.27             # Cliente HTTP asíncrono (para pruebas)
+pytest~=8.3             # Framework de testing
+pytest-asyncio~=0.24
+
+cryptography~=43.0
