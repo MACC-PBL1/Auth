@@ -1,5 +1,5 @@
 services:
-  client_service:
+   client_app:
     build: client_app
     ports:
       - '13001:8000'

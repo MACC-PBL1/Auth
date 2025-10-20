@@ -8,6 +8,9 @@ from app.sql import models, database
 from app.security.keys import generate_keys
 from app.init_admin import init_admin
 
+from app.security.keys import generate_keys, PUBLIC_KEY_PATH
+from app.messaging.publisher import publish_cert_update
+
 # ---------------------------------------------------------------------
 # Logging configuration
 # ---------------------------------------------------------------------
@@ -58,6 +61,17 @@ async def on_startup():
     # Generar claves RSA si no existen
     generate_keys()
     logger.info(" Claves RSA disponibles.")
+
+     # Leer la clave pública actual
+    with open(PUBLIC_KEY_PATH, "r") as f:
+        public_key = f.read()
+
+    # Publicar la clave pública en RabbitMQ
+    try:
+        await publish_cert_update(public_key)
+        logger.info("Clave pública publicada en RabbitMQ.")
+    except Exception as e:
+        logger.error(f"Error publicando clave pública: {e}")
 
     # Crear rol y usuario admin por defecto
     async with database.SessionLocal() as session:

@@ -45,7 +45,7 @@ class UserBase(BaseModel):
     name: str = Field(..., example="Juan Pérez")
     email: str= Field(..., example="juan@example.com")
     phone: Optional[str] = Field(None, example="+34 600 123 456")
-    payment: Optional[float] = Field(None, example=199.99)
+    #payment: Optional[float] = Field(None, example=199.99)
     is_active: bool = Field(default=True, example=True)
     role: Optional[str] = Field(default="client", example="client")
 
@@ -65,7 +65,7 @@ class UserUpdate(BaseModel):
     """Schema para actualizar datos del usuario."""
     name: Optional[str] = Field(None, example="Juan Actualizado")
     phone: Optional[str] = Field(None, example="+34 700 123 456")
-    payment: Optional[float] = Field(None, example=249.99)
+    #payment: Optional[float] = Field(None, example=249.99)
     password: Optional[str] = Field(None, min_length=8, example="NuevaContraseña123")
     is_active: Optional[bool] = Field(None, example=True)
     role: Optional[str] = Field(None, example="client")
@@ -77,7 +77,7 @@ class UserOut(BaseModel):
     name: str
     email: str
     phone: Optional[str]
-    payment: Optional[float]
+   # payment: Optional[float]
     is_active: bool
     role: Optional[RoleOut]  
     creation_date: datetime

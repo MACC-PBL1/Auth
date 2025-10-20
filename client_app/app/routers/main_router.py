@@ -8,7 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.sql import crud, schemas
 from app.dependencies import get_db
 from app.security.jwt_utils import create_jwt, verify_jwt
-from app.security.keys import PUBLIC_KEY_PATH
+
+from app.messaging.publisher import publish_cert_update
+from app.security.keys import generate_keys, PUBLIC_KEY_PATH, PRIVATE_KEY_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +42,7 @@ async def health_check():
 # ------------------------------------------------------------------------------------
 # AUTHENTICATION (GET /auth)
 # ------------------------------------------------------------------------------------
-@router.get( #LOGIN
+@router.get( #LOGIN /JWT por rabbit
     "/auth",
     summary="Authenticate user via Basic Auth and get JWT",
     response_model=dict,
@@ -160,3 +162,110 @@ async def delete_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User {user_id} not found")
 
     return {"detail": f"User {user.email} deleted successfully"}
+
+#cliente pueda actualizar sus datos
+
+#cliente puede eliminar su cuenta
+
+
+# ------------------------------------------------------------------------------------
+# CLIENT SELF-MANAGEMENT (UPDATE / DELETE)
+# ------------------------------------------------------------------------------------
+
+@router.put(
+    "/users/me",
+    summary="Update own user data (client only)",
+    response_model=schemas.UserOut,
+    tags=["Users"]
+)
+async def update_own_user(
+    user_update: schemas.UserUpdate,
+    credentials: HTTPAuthorizationCredentials = Security(bearer_auth),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Allow an authenticated user to update their own profile.
+    Clients can update name, phone, or payment data.
+    """
+    
+    payload = verify_jwt(credentials.credentials)
+    user_id = int(payload.get("sub"))
+    role = payload.get("role")
+
+    # Solo clientes (o admins si quieres permitirlo)
+    if role not in ["client", "admin"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid role")
+
+    # Actualizar en la base de datos
+    user = await crud.update_user(db, user_id, user_update)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    logger.info(f"User '{user.email}' updated their own data.")
+    return user
+
+
+@router.delete(
+    "/users/me/",
+    summary="Delete own account (client only)",
+    response_model=schemas.Message,
+    tags=["Users"]
+)
+async def delete_own_account(
+    credentials: HTTPAuthorizationCredentials = Security(bearer_auth),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Allow a client to delete their own account.
+    """
+    print("✅ Entró en delete own user")
+    payload = verify_jwt(credentials.credentials)
+    user_id = int(payload.get("sub"))
+    role = payload.get("role")
+
+    if role not in ["client", "admin"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid role")
+
+    user = await crud.delete_user(db, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    logger.info(f"User '{user.email}' deleted their own account.")
+    return {"detail": f"User {user.email} deleted successfully"}
+
+
+
+# ------------------------------------------------------------------------------------
+# REFRESH PUBLIC CERT
+# ------------------------------------------------------------------------------------
+
+@router.post(
+    "/rotate-cert",
+    summary="Rotate RSA certificate and broadcast new public key (admin only)",
+    response_model=dict,
+    tags=["Certificates"]
+)
+async def rotate_certificate(
+    credentials: HTTPAuthorizationCredentials = Security(bearer_auth),
+):
+    """Regenera las claves RSA y notifica a los demás microservicios."""
+    payload = verify_jwt(credentials.credentials)
+    if payload.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin role required")
+
+    # Borrar claves viejas y generar nuevas
+    import os
+    if os.path.exists(PRIVATE_KEY_PATH):
+        os.remove(PRIVATE_KEY_PATH)
+    if os.path.exists(PUBLIC_KEY_PATH):
+        os.remove(PUBLIC_KEY_PATH)
+
+    generate_keys()
+    with open(PUBLIC_KEY_PATH, "r") as f:
+        new_key = f.read()
+
+    # Publicar nueva clave pública
+    await publish_cert_update(new_key)
+    logger.info("Nueva clave pública publicada tras rotación manual.")
+
+    return {"detail": "RSA keys rotated and new public key published"}
