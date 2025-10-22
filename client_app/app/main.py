@@ -9,7 +9,7 @@ from app.security.keys import generate_keys
 from app.init_admin import init_admin
 
 from app.security.keys import generate_keys, PUBLIC_KEY_PATH
-from app.messaging.publisher import publish_cert_update
+from app.messaging.publisher import publish_refresh_public_key
 
 # ---------------------------------------------------------------------
 # Logging configuration
@@ -66,9 +66,11 @@ async def on_startup():
     with open(PUBLIC_KEY_PATH, "r") as f:
         public_key = f.read()
 
+    logger.info(" holi.")
+
     # Publicar la clave pública en RabbitMQ
     try:
-        await publish_cert_update(public_key)
+        publish_refresh_public_key(public_key)
         logger.info("Clave pública publicada en RabbitMQ.")
     except Exception as e:
         logger.error(f"Error publicando clave pública: {e}")

@@ -9,7 +9,7 @@ from app.sql import crud, schemas
 from app.dependencies import get_db
 from app.security.jwt_utils import create_jwt, verify_jwt
 
-from app.messaging.publisher import publish_cert_update
+#from app.messaging.publisher import publish_cert_update
 from app.security.keys import generate_keys, PUBLIC_KEY_PATH, PRIVATE_KEY_PATH
 
 logger = logging.getLogger(__name__)
@@ -52,7 +52,7 @@ async def authenticate_user(
     credentials: HTTPBasicCredentials = Depends(basic_auth),
     db: AsyncSession = Depends(get_db)
 ):
-    print("✅ Entró en authenticate_user")
+    print(" Entró en authenticate_user")
     """Authenticate a user using Basic Auth and return JWT."""
     user = await crud.authenticate_user(db, credentials.username, credentials.password)
     if not user:
@@ -218,7 +218,7 @@ async def delete_own_account(
     """
     Allow a client to delete their own account.
     """
-    print("✅ Entró en delete own user")
+    print("Entró en delete own user")
     payload = verify_jwt(credentials.credentials)
     user_id = int(payload.get("sub"))
     role = payload.get("role")
@@ -238,6 +238,10 @@ async def delete_own_account(
 # ------------------------------------------------------------------------------------
 # REFRESH PUBLIC CERT
 # ------------------------------------------------------------------------------------
+from microservice_chassis.events import EventPublisher
+from app.messaging.publisher import publish_refresh_public_key
+import time
+publisher = EventPublisher(exchange="auth.events")
 
 @router.post(
     "/rotate-cert",
@@ -265,7 +269,19 @@ async def rotate_certificate(
         new_key = f.read()
 
     # Publicar nueva clave pública
-    await publish_cert_update(new_key)
-    logger.info("Nueva clave pública publicada tras rotación manual.")
+    # publish_refresh_public_key(new_key)
+    # logger.info("Nueva clave pública publicada tras rotación manual.")
 
-    return {"detail": "RSA keys rotated and new public key published"}
+     # Publicar evento con la chassis
+    publish_refresh_public_key({
+        "public_key": new_key,
+        "rotated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    })
+
+    return {"detail": "RSA keys rotated and event published"}
+
+    # Enviar mensaje al exchange
+    # publisher.publish(topic="client.refresh_public_key", payload=payload)
+    # logger.info("Publicado evento 'client.refresh_public_key'")
+
+    # return {"detail": "RSA keys rotated and new public key published"}

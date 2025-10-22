@@ -2,7 +2,7 @@
 import logging
 import asyncio
 from app.security.keys import generate_keys, PUBLIC_KEY_PATH
-from app.messaging.publisher import publish_cert_update
+#from app.messaging.publisher import publish_cert_update
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ async def init_certificates():
 
     # Notificar al resto de microservicios (RabbitMQ)
     try:
-        await publish_cert_update(public_key)
+        #await publish_cert_update(public_key)
         logger.info(" Public key broadcasted to other services.")
     except Exception as e:
         logger.error(f"Failed to publish public key update: {e}")
