@@ -7,10 +7,12 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials, HTTPAuthorizationC
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.sql import crud, schemas
 from app.dependencies import get_db
-from app.security.jwt_utils import create_jwt, verify_jwt
+from app.security.jwt_utils import create_jwt, verify_jwt, create_refresh_jwt
 
 #from app.messaging.publisher import publish_cert_update
 from app.security.keys import generate_keys, PUBLIC_KEY_PATH, PRIVATE_KEY_PATH
+
+import jwt
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +61,39 @@ async def authenticate_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     token = create_jwt(user_id=user.id, username=user.email, role=user.role.name) #crea el token jwt que hay que enviar a los otros microservicios
+    refresh_token = create_refresh_jwt(user_id=user.id, username=user.email, role=user.role.name)
     logger.info(f"User '{user.email}' authenticated successfully.")
-    return {"access_token": token}
+    return {"access_token": token, "refresh_token": refresh_token}
+
+
+@router.post(
+    "/auth/refresh",
+    summary="Refresh expired access token using refresh token",
+    response_model=dict,
+    tags=["Authentication"]
+)
+async def refresh_access_token(
+    credentials: HTTPAuthorizationCredentials = Security(bearer_auth),
+):
+    """Renew access token using a valid refresh token."""
+    try:
+        payload = verify_jwt(credentials.credentials)
+
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=400, detail="Invalid token type")
+
+        new_access_token = create_jwt(
+            user_id=int(payload["sub"]),
+            username=payload["email"],
+            role=payload["role"]
+        )
+
+        return {"access_token": new_access_token, "token_type": "bearer"}
+
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Refresh token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
 
 
 # ------------------------------------------------------------------------------------

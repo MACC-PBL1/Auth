@@ -21,3 +21,19 @@ def verify_jwt(token: str):
     """Verify JWT and return payload."""
     public_key = open(PUBLIC_KEY_PATH, "r").read()
     return jwt.decode(token, public_key, algorithms=[ALGORITHM])
+
+
+# app/security/jwt_utils.py
+REFRESH_EXP_DAYS = 7  # dura 7 días
+
+def create_refresh_jwt(user_id: int, username: str, role: str):
+    """Create refresh token signed with RS256."""
+    private_key = open(PRIVATE_KEY_PATH, "r").read()
+    payload = {
+        "sub": str(user_id),
+        "email": username,
+        "role": role,
+        "type": "refresh",
+        "exp": datetime.utcnow() + timedelta(days=REFRESH_EXP_DAYS)
+    }
+    return jwt.encode(payload, private_key, algorithm=ALGORITHM)
