@@ -4,16 +4,21 @@ FROM python:3.12-slim-bookworm
 WORKDIR /home/pyuser/code
 
 # Copy wheel into the container
-COPY Chassis/dist/microservice_chassis-0.3.0-py3-none-any.whl ./Chassis/dist/
+#COPY Chassis/dist/microservice_chassis-0.3.0-py3-none-any.whl ./Chassis/dist/
+
+# Copy the new chassis source and install it in editable mode
+COPY Chassis /chassis
+RUN pip install --no-cache-dir -e /chassis
 
 # Copy requirements
 COPY Client/client_app/requirements.txt .
 
 #COPY requirements.txt /requirements.txt
 # Install dependencies
-RUN pip install --no-cache-dir --upgrade pip && \
+# Install dependencies
+RUN apt-get update && apt-get install -y git && \
+    pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
-
 
 # Create a non root user
 RUN useradd -u 1000 -d /home/pyuser -m pyuser && \

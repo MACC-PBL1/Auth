@@ -238,10 +238,9 @@ async def delete_own_account(
 # ------------------------------------------------------------------------------------
 # REFRESH PUBLIC CERT
 # ------------------------------------------------------------------------------------
-from microservice_chassis.events import EventPublisher
 from app.messaging.publisher import publish_refresh_public_key
 import time
-publisher = EventPublisher(exchange="auth.events")
+
 
 @router.post(
     "/rotate-cert",
@@ -268,10 +267,6 @@ async def rotate_certificate(
     with open(PUBLIC_KEY_PATH, "r") as f:
         new_key = f.read()
 
-    # Publicar nueva clave pública
-    # publish_refresh_public_key(new_key)
-    # logger.info("Nueva clave pública publicada tras rotación manual.")
-
      # Publicar evento con la chassis
     publish_refresh_public_key({
         "public_key": new_key,
@@ -280,8 +275,3 @@ async def rotate_certificate(
 
     return {"detail": "RSA keys rotated and event published"}
 
-    # Enviar mensaje al exchange
-    # publisher.publish(topic="client.refresh_public_key", payload=payload)
-    # logger.info("Publicado evento 'client.refresh_public_key'")
-
-    # return {"detail": "RSA keys rotated and new public key published"}

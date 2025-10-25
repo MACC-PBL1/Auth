@@ -66,8 +66,6 @@ async def on_startup():
     with open(PUBLIC_KEY_PATH, "r") as f:
         public_key = f.read()
 
-    logger.info(" holi.")
-
     # Publicar la clave pública en RabbitMQ
     try:
         publish_refresh_public_key(public_key)

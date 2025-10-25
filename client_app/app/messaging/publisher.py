@@ -1,35 +1,62 @@
-from microservice_chassis.events import EventPublisher
+#from microservice_chassis.events import EventPublisher
 import json
 import logging
 
 logger = logging.getLogger(__name__)
 
-publisher = EventPublisher(exchange="auth.events")
+#publisher = EventPublisher(exchange="auth.events")
 
-def publish_refresh_public_key(data: dict):
+
+import json
+import logging
+from chassis.messaging.publisher import RabbitMQPublisher
+from chassis.messaging.types import RabbitMQConfig
+
+logger = logging.getLogger(__name__)
+
+
+rabbitmq_config: RabbitMQConfig = {
+    "host": "rabbitmq",
+    "port": 5671,
+    "username": "guest",
+    "password": "guest",
+    "use_tls": True,  
+    "ca_cert": "/etc/rabbitmq/ssl/ca_cert.pem",
+    "client_cert": "/etc/rabbitmq/ssl/client_cert.pem",
+    "client_key": "/etc/rabbitmq/ssl/client_key.pem",
+    "prefetch_count": 1,
+}
+
+
+def publish_refresh_public_key(data: dict) -> None:
     """Publica un evento indicando que la clave pública ha sido actualizada."""
     exchange_name = "auth.events"
     routing_key = "client.refresh_public_key"
     payload = {
         "event": routing_key,
-        "data": data
+        "data": data,
     }
 
-    logger.info("Preparando publicación de evento '%s' en exchange '%s'", routing_key, exchange_name)
-    logger.debug(" Payload a enviar: %s", json.dumps(payload, indent=2))
-
-    temp_publisher = EventPublisher(exchange=exchange_name)
+    logger.info(
+        "Preparando publicación de evento '%s' en exchange '%s'",
+        routing_key,
+        exchange_name,
+    )
+    logger.debug("Payload a enviar: %s", json.dumps(payload, indent=2))
 
     try:
-        temp_publisher.connect()
-        logger.info("Conexión establecida con RabbitMQ (exchange=%s)", exchange_name)
+        # Usa el context manager de la nueva chassis
+        with RabbitMQPublisher(
+            queue=routing_key,
+            rabbitmq_config=rabbitmq_config,
+        ) as publisher:
+            publisher.publish(
+                message=payload,
+                routing_key=routing_key,
+                exchange=exchange_name,
+            )
 
-        temp_publisher.publish(topic=routing_key, payload=payload)
-        logger.info(" Evento '%s' publicado correctamente en RabbitMQ.", routing_key)
+        logger.info("Evento '%s' publicado correctamente en RabbitMQ.", routing_key)
 
     except Exception as e:
-        logger.exception(" Error publicando evento '%s': %s", routing_key, e)
-
-    finally:
-        temp_publisher.close()
-        logger.debug(" Conexión cerrada con RabbitMQ.")
+        logger.exception("Error publicando evento '%s': %s", routing_key, e)
