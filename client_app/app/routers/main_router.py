@@ -94,7 +94,7 @@ async def register_user(
     db: AsyncSession = Depends(get_db)
 ):
     """Create a new user (requires admin role)."""
-    payload = verify_jwt(credentials.credentials)
+    payload = verify_jwt(credentials.credentials) ##VERIFY METER EN LA CHASIS
     if payload.get("role") != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
 
