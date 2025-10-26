@@ -27,7 +27,6 @@ rabbitmq_config: RabbitMQConfig = {
     "prefetch_count": 1,
 }
 
-
 def publish_refresh_public_key(data: dict) -> None:
     """Publica un evento indicando que la clave pública ha sido actualizada."""
     exchange_name = "auth.events"
@@ -37,26 +36,27 @@ def publish_refresh_public_key(data: dict) -> None:
         "data": data,
     }
 
-    logger.info(
-        "Preparando publicación de evento '%s' en exchange '%s'",
-        routing_key,
-        exchange_name,
-    )
+    logger.info(f"Preparando publicación de evento '{routing_key}' en exchange '{exchange_name}'")
     logger.debug("Payload a enviar: %s", json.dumps(payload, indent=2))
 
     try:
-        # Usa el context manager de la nueva chassis
         with RabbitMQPublisher(
             queue=routing_key,
             rabbitmq_config=rabbitmq_config,
         ) as publisher:
+ 
+            publisher.channel.exchange_declare(
+                exchange=exchange_name,
+                exchange_type="topic",
+                durable=True
+            )
+
             publisher.publish(
                 message=payload,
                 routing_key=routing_key,
                 exchange=exchange_name,
             )
 
-        logger.info("Evento '%s' publicado correctamente en RabbitMQ.", routing_key)
-
+        logger.info(f"Evento '{routing_key}' publicado correctamente en RabbitMQ.")
     except Exception as e:
-        logger.exception("Error publicando evento '%s': %s", routing_key, e)
+        logger.exception(f"Error publicando evento '{routing_key}': {e}")
