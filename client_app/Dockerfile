@@ -7,8 +7,8 @@ WORKDIR /home/pyuser/code
 #COPY Chassis/dist/microservice_chassis-0.3.0-py3-none-any.whl ./Chassis/dist/
 
 # Copy the new chassis source and install it in editable mode
-COPY Chassis /chassis
-RUN pip install --no-cache-dir -e /chassis
+# COPY Chassis /chassis
+# RUN pip install --no-cache-dir -e /chassis
 
 # Copy requirements
 COPY Auth/client_app/requirements.txt .
