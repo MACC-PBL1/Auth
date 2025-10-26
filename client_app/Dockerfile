@@ -11,7 +11,7 @@ COPY Chassis /chassis
 RUN pip install --no-cache-dir -e /chassis
 
 # Copy requirements
-COPY Client/client_app/requirements.txt .
+COPY Auth/client_app/requirements.txt .
 
 #COPY requirements.txt /requirements.txt
 # Install dependencies
@@ -25,9 +25,9 @@ RUN useradd -u 1000 -d /home/pyuser -m pyuser && \
     chown -R pyuser:pyuser /home/pyuser
 
  # Copy entrypoint and app
-COPY Client/client_app/entrypoint.sh .
+COPY Auth/client_app/entrypoint.sh .
 RUN chmod +x entrypoint.sh
-COPY Client/client_app/app ./app
+COPY Auth/client_app/app ./app
 
 # Switch to non-root user
 USER pyuser
