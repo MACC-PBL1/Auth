@@ -13,13 +13,13 @@ terminate() {
   echo "Hypercorn has been terminated"
 }
 
+sleep 10s
+
 trap terminate SIGTERM SIGINT
 
 hypercorn \
   --bind 0.0.0.0:8000 \
   app.main:app &
-
-sleep 10s
 
 # Capture the PID of the Hypercorn process
 HYPERCORN_PID=$!
