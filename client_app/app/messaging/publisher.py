@@ -45,7 +45,7 @@ def publish_refresh_public_key(data: dict) -> None:
             rabbitmq_config=rabbitmq_config,
         ) as publisher:
  
-            publisher.channel.exchange_declare(
+            publisher._channel.exchange_declare(
                 exchange=exchange_name,
                 exchange_type="topic",
                 durable=True
