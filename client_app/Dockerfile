@@ -16,7 +16,7 @@ COPY Auth/client_app/requirements.txt .
 #COPY requirements.txt /requirements.txt
 # Install dependencies
 # Install dependencies
-RUN apt-get update && apt-get install -y git && \
+RUN apt-get update && apt-get install -y git curl && \
     pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
