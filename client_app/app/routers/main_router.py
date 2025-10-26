@@ -301,10 +301,7 @@ async def rotate_certificate(
         new_key = f.read()
 
      # Publicar evento con la chassis
-    publish_refresh_public_key({
-        "public_key": new_key,
-        "rotated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-    })
+    publish_refresh_public_key(new_key)
 
     return {"detail": "RSA keys rotated and event published"}
 

@@ -27,12 +27,12 @@ rabbitmq_config: RabbitMQConfig = {
     "prefetch_count": 1,
 }
 
-def publish_refresh_public_key(data: dict) -> None:
+def publish_refresh_public_key(public_key: str) -> None:
     """Publica un evento indicando que la clave pública ha sido actualizada."""
     exchange_name = "public_key"
 
     logger.info(f"Preparando publicación en exchange '{exchange_name}'")
-    logger.debug("Payload a enviar: %s", json.dumps(data, indent=2))
+    logger.debug(f"Payload a enviar: {public_key}")
 
     try:
         with RabbitMQPublisher(
@@ -42,7 +42,9 @@ def publish_refresh_public_key(data: dict) -> None:
             exchange_type="fanout",
         ) as publisher:
             publisher.publish(
-                message=data,
+                message={
+                    "public_key": public_key
+                },
             )
         logger.info(f"Public key correctamente publicado en RabbitMQ.")
     except Exception as e:
