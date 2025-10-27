@@ -46,6 +46,20 @@ def publish_refresh_public_key(public_key: str) -> None:
                     "public_key": public_key
                 },
             )
+        with RabbitMQPublisher(
+            queue="events.auth",
+            rabbitmq_config=rabbitmq_config,
+            exchange="events.exchange",
+            exchange_type="topic",
+            routing_key="events.auth",
+        ) as publisher:
+            publisher.publish({
+                "service_name": "auth",
+                "event_type": "Listen",
+                "message": f"EVENT: Public key updated --> Message: {public_key}"
+            })
         logger.info(f"Public key correctamente publicado en RabbitMQ.")
     except Exception as e:
         logger.exception(f"Error publicando public key': {e}")
+
+
