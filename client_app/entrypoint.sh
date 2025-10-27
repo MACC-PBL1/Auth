@@ -13,8 +13,6 @@ terminate() {
   echo "Hypercorn has been terminated"
 }
 
-sleep 10s
-
 trap terminate SIGTERM SIGINT
 
 hypercorn \

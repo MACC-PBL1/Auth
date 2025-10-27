@@ -31,7 +31,7 @@ bearer_auth = HTTPBearer()
 # Health check
 # ------------------------------------------------------------------------------------
 @router.get(
-    "/",
+    "/health",
     summary="Health check endpoint",
     response_model=schemas.Message,
 )
