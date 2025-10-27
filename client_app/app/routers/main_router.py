@@ -37,7 +37,7 @@ bearer_auth = HTTPBearer()
 )
 async def health_check():
     """Endpoint to check if the Auth Service is running."""
-    logger.debug("GET '/' endpoint called.")
+    logger.debug("GET '/auth-service/health' endpoint called.")
     return {"detail": "Auth Service OK"}
 
 
