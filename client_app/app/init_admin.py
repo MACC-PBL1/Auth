@@ -27,6 +27,7 @@ async def init_admin(db):
         admin_user = User(
             name="Administrador",
             email="admin@example.com",
+            address="01470",
             is_active=True,
             role_id=admin_role.id,
         )
