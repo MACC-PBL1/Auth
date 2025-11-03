@@ -45,7 +45,7 @@ class UserBase(BaseModel):
     name: str = Field(..., example="Juan Pérez")
     email: str= Field(..., example="juan@example.com")
     phone: Optional[str] = Field(None, example="+34 600 123 456")
-    address =  str= Field(..., example="Araba (01)")
+    address:  str= Field(..., example="Araba (01)")
     #payment: Optional[float] = Field(None, example=199.99)
     is_active: bool = Field(default=True, example=True)
     role: Optional[str] = Field(default="client", example="client")
