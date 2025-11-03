@@ -39,6 +39,7 @@ class User(BaseModel):
     name = Column(String(100), nullable=False)
     email = Column(String(150), unique=True, index=True, nullable=False)
     phone = Column(String(20), nullable=True)
+    address = Column(String(100), nullable=False)
     #payment = Column(Float, nullable=True)
 
     password_hash = Column(String(255), nullable=False)

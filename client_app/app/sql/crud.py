@@ -51,6 +51,7 @@ async def create_user(db: AsyncSession, user: schemas.UserCreate):
             name=user.name,
             email=user.email,
             phone=user.phone,
+            address = user.address,
             #payment=user.payment,
             is_active=True,
             role_id=role.id,
