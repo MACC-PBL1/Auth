@@ -33,7 +33,7 @@ tags_metadata = [
     {"name": "Users", "description": "Gestión de usuarios y roles."},
     {"name": "Public Key", "description": "Provee la clave pública para validar tokens."},
 ]
-
+ 
 # ---------------------------------------------------------------------
 # FastAPI application
 # ---------------------------------------------------------------------
