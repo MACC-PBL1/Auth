@@ -7,7 +7,7 @@ from app.routers import main_router
 from app.sql import models, database
 from app.security.keys import generate_keys
 from app.init_admin import init_admin
-
+from chassis.consul import ConsulClient 
 from app.security.keys import generate_keys, PUBLIC_KEY_PATH
 from app.messaging.publisher import publish_refresh_public_key
 
@@ -33,7 +33,7 @@ tags_metadata = [
     {"name": "Users", "description": "Gestión de usuarios y roles."},
     {"name": "Public Key", "description": "Provee la clave pública para validar tokens."},
 ]
- 
+
 # ---------------------------------------------------------------------
 # FastAPI application
 # ---------------------------------------------------------------------
@@ -72,7 +72,14 @@ async def on_startup():
         logger.info("Clave pública publicada en RabbitMQ.")
     except Exception as e:
         logger.error(f"Error publicando clave pública: {e}")
-
+    logger.info("Registering service to Consul...")
+    try:
+        service_port = int(os.getenv("PORT", "8000"))
+        consul = ConsulClient(logger=logger)
+        consul.register_service(service_name="auth-service", port=service_port, health_path="/auth-service/health")
+        
+    except Exception as e:
+        logger.error(f"Failed to register with Consul: {e}")
     # Crear rol y usuario admin por defecto
     async with database.SessionLocal() as session:
         await init_admin(session)
