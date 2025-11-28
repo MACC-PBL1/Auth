@@ -123,7 +123,7 @@ async def refresh(
 async def register(
     data: RegisterRequest,
     db: AsyncSession = Depends(get_db),
-    token_data: dict = Depends(create_jwt_verifier)
+    token_data: dict = Depends(create_jwt_verifier(lambda: Auth.get_public_key_pem(), logger))
 ):
     user_role = token_data.get("role")
     if user_role != "admin":
