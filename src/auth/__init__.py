@@ -1,13 +1,19 @@
-from .routers import Router
+from .routers import (
+    Router,
+    hash_password,
+)
+from .sql import create_user
 from chassis.sql import (
     Base, 
     Engine,
+    SessionLocal,
 )
 from chassis.consul import ConsulClient 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from hypercorn.asyncio import serve
 from hypercorn.config import Config
+from sqlalchemy.ext.asyncio import AsyncSession
 import asyncio
 import logging.config
 import os
@@ -15,6 +21,15 @@ import os
 # Configure logging
 logging.config.fileConfig(os.path.join(os.path.dirname(__file__), "logging.ini"))
 logger = logging.getLogger(__name__)
+
+# Create admin user
+async def create_admin(db: AsyncSession) -> None:
+    await create_user(
+        db=db,
+        role="admin",
+        username="admin@mondragon.com",
+        hashed_password=hash_password("admin"),
+    )
 
 # App Lifespan #####################################################################################
 @asynccontextmanager
@@ -26,6 +41,9 @@ async def lifespan(__app: FastAPI):
             logger.info("Creating database tables")
             async with Engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
+            logger.info("Creating default admin.")
+            async with SessionLocal() as db:
+                await create_admin(db)
             logger.info("Registering service to Consul...")
             try:
                 service_port = int(os.getenv("PORT", "8000"))
@@ -35,7 +53,6 @@ async def lifespan(__app: FastAPI):
                     port=service_port, 
                     health_path="/auth/health"
                 )
-                
             except Exception as e:
                 logger.error(f"Failed to register with Consul: {e}")
         except Exception:
