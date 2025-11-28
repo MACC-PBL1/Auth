@@ -31,9 +31,9 @@ async def lifespan(__app: FastAPI):
                 service_port = int(os.getenv("PORT", "8000"))
                 consul = ConsulClient(logger=logger)
                 consul.register_service(
-                    service_name="delivery-service", 
+                    service_name="auth-service", 
                     port=service_port, 
-                    health_path="/deliveries/health"
+                    health_path="/auth/health"
                 )
                 
             except Exception as e:

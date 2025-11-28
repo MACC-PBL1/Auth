@@ -43,7 +43,7 @@ Router = APIRouter(prefix="/auth")
 )
 async def health_check():
     container_id = socket.gethostname()
-    logger.debug(f"GET '/machine/health' served by {container_id}")
+    logger.debug(f"GET '/auth/health' served by {container_id}")
     return {"detail": f"OK - Served by {container_id}"}
 
 @Router.get(
