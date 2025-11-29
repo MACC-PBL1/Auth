@@ -26,7 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 import socket
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("auth")
 Router = APIRouter(prefix="/auth")
 
 # ------------------------------------------------------------------------------------
@@ -58,7 +58,11 @@ async def health_check_auth(
     user_id = token_data.get("sub")
     user_role = token_data.get("role")
 
-    logger.info(f" Valid JWT: user_id={user_id}, role={user_role}")
+   # logger.info(f" Valid JWT: user_id={user_id}, role={user_role}")
+    logger.info(
+        f"Valid JWT: user_id={user_id}, role={user_role}",
+        extra={"client_id": user_id}
+    )
 
     return {
         "detail": f"Auth service is running. Authenticated as (id={user_id}, role={user_role})"
@@ -81,6 +85,11 @@ async def login(
         )
     
     assert maybe_user is not None, "User data should not be None"
+
+    logger.info(
+        "User logged in",
+        extra={"client_id": maybe_user.id, "username": maybe_user.username}
+    )
     access_token = JWTRSAProvider.create_access_token(maybe_user.id, maybe_user.role, 15)
     refresh_token = JWTRSAProvider.create_refresh_token(maybe_user.id, 7)
 
@@ -100,6 +109,11 @@ async def refresh(
 
         if (maybe_user := await get_user_by_id(db, user_id)) is None:
             raise ValueError("User does not exist")
+        
+        logger.info(
+            "Refresh token accepted",
+            extra={"client_id": user_id}
+        )
         
         new_access = JWTRSAProvider.create_access_token(
             user_id=maybe_user.id,
