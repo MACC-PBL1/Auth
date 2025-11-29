@@ -14,8 +14,7 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 class RegisterRequest(BaseModel):
-    username: str
-    email: EmailStr
+    username: EmailStr
     password: str
     role: str
 

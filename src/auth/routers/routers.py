@@ -26,10 +26,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 import socket
 
-Auth = JWTRSAProvider(
-    public_exponent=65537,
-    key_size=4096,
-)
 logger = logging.getLogger(__name__)
 Router = APIRouter(prefix="/auth")
 
@@ -42,6 +38,11 @@ Router = APIRouter(prefix="/auth")
     response_model=Message,
 )
 async def health_check():
+    # Initialize singleton
+    _ = JWTRSAProvider(
+        public_exponent=65537,
+        key_size=4096,
+    )
     container_id = socket.gethostname()
     logger.debug(f"GET '/auth/health' served by {container_id}")
     return {"detail": f"OK - Served by {container_id}"}
@@ -51,17 +52,16 @@ async def health_check():
     summary="Health check endpoint (JWT protected)",
 )
 async def health_check_auth(
-    token_data: dict = Depends(create_jwt_verifier(lambda: Auth.get_public_key_pem(), logger))
+    token_data: dict = Depends(create_jwt_verifier(lambda: JWTRSAProvider.get_public_key_pem(), logger))
 ):
     logger.debug("GET '/health/auth' endpoint called.")
     user_id = token_data.get("sub")
-    user_email = token_data.get("email")
     user_role = token_data.get("role")
 
-    logger.info(f" Valid JWT: user_id={user_id}, email={user_email}, role={user_role}")
+    logger.info(f" Valid JWT: user_id={user_id}, role={user_role}")
 
     return {
-        "detail": f"Auth service is running. Authenticated as {user_email} (id={user_id}, role={user_role})"
+        "detail": f"Auth service is running. Authenticated as (id={user_id}, role={user_role})"
     }
 
 @Router.post("/login", response_model=TokenResponse)
@@ -70,6 +70,9 @@ async def login(
     db: AsyncSession = Depends(get_db)
 ):
     maybe_user = await get_user_by_username(db, data.username)
+    print(maybe_user)
+    print(data)
+    print(hash_password(data.password))
     if maybe_user is None or not verify_password(data.password, maybe_user.hashed_password):
         raise_and_log_error(
             logger,
@@ -78,8 +81,8 @@ async def login(
         )
     
     assert maybe_user is not None, "User data should not be None"
-    access_token = Auth.create_access_token(maybe_user.id, maybe_user.role, 15)
-    refresh_token = Auth.create_refresh_token(maybe_user.id, 7)
+    access_token = JWTRSAProvider.create_access_token(maybe_user.id, maybe_user.role, 15)
+    refresh_token = JWTRSAProvider.create_refresh_token(maybe_user.id, 7)
 
     return TokenResponse(
         access_token=access_token,
@@ -92,18 +95,18 @@ async def refresh(
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        payload = Auth.verify_token(data.refresh_token, "refresh")
+        payload = JWTRSAProvider.verify_token(data.refresh_token, "refresh")
         user_id = payload["sub"]
 
         if (maybe_user := await get_user_by_id(db, user_id)) is None:
             raise ValueError("User does not exist")
         
-        new_access = Auth.create_access_token(
+        new_access = JWTRSAProvider.create_access_token(
             user_id=maybe_user.id,
             role=maybe_user.role,
             minutes=15,
         )
-        new_refresh = Auth.create_refresh_token(
+        new_refresh = JWTRSAProvider.create_refresh_token(
             user_id=maybe_user.id,
             days=7,
         )
@@ -123,7 +126,7 @@ async def refresh(
 async def register(
     data: RegisterRequest,
     db: AsyncSession = Depends(get_db),
-    token_data: dict = Depends(create_jwt_verifier(lambda: Auth.get_public_key_pem(), logger))
+    token_data: dict = Depends(create_jwt_verifier(lambda: JWTRSAProvider.get_public_key_pem(), logger))
 ):
     user_role = token_data.get("role")
     if user_role != "admin":
@@ -133,8 +136,8 @@ async def register(
             f"Access denied: user_role={user_role} (admin required)",
         )
 
-    if await get_user_by_username(db, data.email) is not None:
-        raise_and_log_error(logger, status.HTTP_400_BAD_REQUEST, "Email already registered")
+    if await get_user_by_username(db, data.username) is not None:
+        raise_and_log_error(logger, status.HTTP_400_BAD_REQUEST, "Username already registered")
 
     new_user = await create_user(
         db,
@@ -152,7 +155,7 @@ async def register(
 
 @Router.get("/key")
 async def get_public_key():
-    return {"public_key": Auth.get_public_key_pem()}
+    return {"public_key": JWTRSAProvider.get_public_key_pem()}
 
 
 # TODO: MAYBE A CRUD

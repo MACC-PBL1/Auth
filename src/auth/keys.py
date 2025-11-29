@@ -38,8 +38,6 @@ RABBITMQ_CONFIG: RabbitMQConfig = {
     "prefetch_count": int(os.getenv("RABBITMQ_PREFETCH_COUNT", 10))
 }
 
-print(RABBITMQ_CONFIG)
-
 class JWTRSAProvider:
     _algorithm = "RS256"
     _private_key: Optional[RSAPrivateKey] = None
@@ -80,7 +78,7 @@ class JWTRSAProvider:
         assert JWTRSAProvider._private_key is not None, "A private key should be created before calling this function."
         payload = {
             "sub": str(user_id),
-            "exp": str(datetime.now(timezone.utc) + timedelta(minutes=minutes)),
+            "exp": datetime.now(timezone.utc) + timedelta(minutes=minutes),
             "role": role,
             "type": "access"
         }

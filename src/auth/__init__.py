@@ -2,7 +2,10 @@ from .routers import (
     Router,
     hash_password,
 )
-from .sql import create_user
+from .sql import (
+    create_user,
+    get_user_by_username,
+)
 from chassis.sql import (
     Base, 
     Engine,
@@ -23,11 +26,16 @@ logging.config.fileConfig(os.path.join(os.path.dirname(__file__), "logging.ini")
 logger = logging.getLogger(__name__)
 
 # Create admin user
-async def create_admin(db: AsyncSession) -> None:
+async def create_admin(
+    db: AsyncSession,
+    username: str = "admin@mondragon.edu"
+) -> None:
+    if await get_user_by_username(db, username) is not None:
+        return
     await create_user(
         db=db,
         role="admin",
-        username="admin@mondragon.com",
+        username=username,
         hashed_password=hash_password("admin"),
     )
 
@@ -44,21 +52,21 @@ async def lifespan(__app: FastAPI):
             logger.info("Creating default admin.")
             async with SessionLocal() as db:
                 await create_admin(db)
-            logger.info("Registering service to Consul...")
-            try:
-                service_port = int(os.getenv("PORT", "8000"))
-                consul = ConsulClient(logger=logger)
-                consul.register_service(
-                    service_name="auth-service", 
-                    port=service_port, 
-                    health_path="/auth/health"
-                )
-            except Exception as e:
-                logger.error(f"Failed to register with Consul: {e}")
         except Exception:
             logger.error(
                 "Could not create tables at startup",
             )
+        logger.info("Registering service to Consul...")
+        try:
+            service_port = int(os.getenv("PORT", "8000"))
+            consul = ConsulClient(logger=logger)
+            consul.register_service(
+                service_name="auth", 
+                port=service_port, 
+                health_path="/auth/health"
+            )
+        except Exception as e:
+            logger.error(f"Failed to register with Consul: {e}")
         yield
     finally:
         logger.info("Shutting down database")
