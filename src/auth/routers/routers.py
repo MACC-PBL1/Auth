@@ -1,5 +1,5 @@
 from ..keys import JWTRSAProvider
-from ..messaging import RABBITMQ_CONFIG
+from ..global_vars import RABBITMQ_CONFIG
 from ..sql import (
     get_user_by_id,
     get_user_by_username,
