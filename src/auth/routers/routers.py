@@ -26,7 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 import socket
 
-logger = logging.getLogger("auth")
+logger = logging.getLogger(__name__)
 Router = APIRouter(prefix="/auth")
 
 # ------------------------------------------------------------------------------------

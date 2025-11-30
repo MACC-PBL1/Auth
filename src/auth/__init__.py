@@ -11,9 +11,6 @@ from chassis.sql import (
     Engine,
     SessionLocal,
 )
-from .messaging import (
-    RABBITMQ_CONFIG,
-)
 from chassis.consul import ConsulClient 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -25,23 +22,9 @@ import logging.config
 import os
 from chassis.logging.rabbitmq_logging import RabbitMQHandler
 
-logging.config.fileConfig(
-    os.path.join(os.path.dirname(__file__), "logging.ini"),
-    defaults={"RABBITMQ_CONFIG": RABBITMQ_CONFIG},
-    disable_existing_loggers=False
-)
+logging.config.fileConfig(os.path.join(os.path.dirname(__file__), "logging.ini"))
 
-logger = logging.getLogger("auth")
-
-# Evita bucles con librerias internas
-for noisy in ["pika", "amqp", "urllib3", "hypercorn", "uvicorn", "sqlalchemy.engine"]:
-    logging.getLogger(noisy).propagate = False
-    logging.getLogger(noisy).disabled = True
-
-
-for h in logger.handlers:
-    if isinstance(h, RabbitMQHandler):
-        h.rabbitmq_config = RABBITMQ_CONFIG
+logger = logging.getLogger(__name__)
 
 # Create admin user
 async def create_admin(
