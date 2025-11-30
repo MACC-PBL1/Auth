@@ -8,7 +8,7 @@ class LoginRequest(BaseModel):
     password: str
 
 class Message(BaseModel):
-    detail: str = "Operation successful"
+    detail: str
     system_metrics: dict
 
 class RefreshRequest(BaseModel):
