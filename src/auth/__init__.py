@@ -1,10 +1,7 @@
-from .routers import (
-    Router,
-    hash_password,
-)
-from .sql import (
-    create_user,
-    get_user_by_username,
+from .global_vars import RABBITMQ_CONFIG
+from chassis.logging import (
+    get_logger,
+    setup_rabbitmq_logging,
 )
 from chassis.sql import (
     Base, 
@@ -21,9 +18,22 @@ import asyncio
 import logging.config
 import os
 
+# Configure logging ################################################################################
 logging.config.fileConfig(os.path.join(os.path.dirname(__file__), "logging.ini"))
+setup_rabbitmq_logging(
+    rabbitmq_config=RABBITMQ_CONFIG,
+    capture_dependencies=True,
+)
+logger = get_logger(__name__)
 
-logger = logging.getLogger(__name__)
+from .routers import (
+    Router,
+    hash_password,
+)
+from .sql import (
+    create_user,
+    get_user_by_username,
+)
 
 # Create admin user
 async def create_admin(
