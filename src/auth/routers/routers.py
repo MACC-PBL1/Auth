@@ -91,7 +91,7 @@ async def login(
         raise_and_log_error(
             logger,
             status.HTTP_401_UNAUTHORIZED,
-            message="Invalid credentials"
+            message="[LOG:REST] - Invalid credentials"
         )
     
     assert maybe_user is not None, "User data should not be None"
