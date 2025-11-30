@@ -1,4 +1,5 @@
 from ..keys import JWTRSAProvider
+from ..messaging import RABBITMQ_CONFIG
 from ..sql import (
     get_user_by_id,
     get_user_by_username,
@@ -14,9 +15,13 @@ from .utils import (
     hash_password,
     verify_password,
 )
-from chassis.sql import get_db
-from chassis.routers import raise_and_log_error
+from chassis.messaging import is_rabbitmq_healthy
+from chassis.routers import (
+    get_system_metrics,
+    raise_and_log_error
+)
 from chassis.security import create_jwt_verifier
+from chassis.sql import get_db
 from fastapi import (
     APIRouter, 
     Depends,
@@ -38,34 +43,42 @@ Router = APIRouter(prefix="/auth")
     response_model=Message,
 )
 async def health_check():
-    # Initialize singleton
+    if not is_rabbitmq_healthy(RABBITMQ_CONFIG):
+        raise_and_log_error(
+            logger=logger,
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            message="[LOG:REST] - RabbitMQ not reachable"
+        )
+
     _ = JWTRSAProvider(
         public_exponent=65537,
         key_size=4096,
     )
     container_id = socket.gethostname()
-    logger.debug(f"GET '/auth/health' served by {container_id}")
-    return {"detail": f"OK - Served by {container_id}"}
+    logger.debug(f"[LOG:REST] - GET '/health' served by {container_id}")
+    return {
+        "detail": f"OK - Served by {container_id}",
+        "system_metrics": get_system_metrics()
+    }
 
 @Router.get(
     "/health/auth",
     summary="Health check endpoint (JWT protected)",
+    response_model=Message
 )
 async def health_check_auth(
     token_data: dict = Depends(create_jwt_verifier(lambda: JWTRSAProvider.get_public_key_pem(), logger))
 ):
-    logger.debug("GET '/health/auth' endpoint called.")
+    logger.debug("[LOG:REST] - GET '/health/auth' endpoint called.")
+
     user_id = token_data.get("sub")
     user_role = token_data.get("role")
 
-   # logger.info(f" Valid JWT: user_id={user_id}, role={user_role}")
-    logger.info(
-        f"Valid JWT: user_id={user_id}, role={user_role}",
-        extra={"client_id": user_id}
-    )
+    logger.info(f"[LOG:REST] - Valid JWT: user_id={user_id}, role={user_role}")
 
     return {
-        "detail": f"Auth service is running. Authenticated as (id={user_id}, role={user_role})"
+        "detail": f"Auth service is running. Authenticated as (id={user_id}, role={user_role})",
+        "system_metrics": get_system_metrics()
     }
 
 @Router.post("/login", response_model=TokenResponse)
@@ -74,9 +87,6 @@ async def login(
     db: AsyncSession = Depends(get_db)
 ):
     maybe_user = await get_user_by_username(db, data.username)
-    print(maybe_user)
-    print(data)
-    print(hash_password(data.password))
     if maybe_user is None or not verify_password(data.password, maybe_user.hashed_password):
         raise_and_log_error(
             logger,
@@ -86,10 +96,8 @@ async def login(
     
     assert maybe_user is not None, "User data should not be None"
 
-    logger.info(
-        "User logged in",
-        extra={"client_id": maybe_user.id, "username": maybe_user.username}
-    )
+    logger.info(f"[LOG:REST] - User logged in: client_id={maybe_user.id}, username={maybe_user.username}")
+    
     access_token = JWTRSAProvider.create_access_token(maybe_user.id, maybe_user.role, 15)
     refresh_token = JWTRSAProvider.create_refresh_token(maybe_user.id, 7)
 
@@ -103,17 +111,13 @@ async def refresh(
     data: RefreshRequest,
     db: AsyncSession = Depends(get_db)
 ):
+    logger.debug("[LOG:REST] - GET '/refresh' endpoint called.")
     try:
         payload = JWTRSAProvider.verify_token(data.refresh_token, "refresh")
         user_id = payload["sub"]
 
         if (maybe_user := await get_user_by_id(db, user_id)) is None:
             raise ValueError("User does not exist")
-        
-        logger.info(
-            "Refresh token accepted",
-            extra={"client_id": user_id}
-        )
         
         new_access = JWTRSAProvider.create_access_token(
             user_id=maybe_user.id,
@@ -125,6 +129,8 @@ async def refresh(
             days=7,
         )
         
+        logger.info(f"[LOG:REST] - Refresh token created: client_id={user_id}")
+
         return TokenResponse(
             access_token=new_access,
             refresh_token=new_refresh
@@ -142,6 +148,8 @@ async def register(
     db: AsyncSession = Depends(get_db),
     token_data: dict = Depends(create_jwt_verifier(lambda: JWTRSAProvider.get_public_key_pem(), logger))
 ):
+    logger.debug("[LOG:REST] - GET '/register' endpoint called.")
+    
     user_role = token_data.get("role")
     if user_role != "admin":
         raise_and_log_error(
@@ -160,6 +168,11 @@ async def register(
         hashed_password=hash_password(data.password)
     )
 
+    logger.info(
+        "[LOG:REST] - User registered: ",
+        f"id={new_user.id} username={new_user.username}, role={new_user.role}"
+    )
+
     return UserResponse(
         id=new_user.id,
         email=new_user.username,
@@ -169,6 +182,7 @@ async def register(
 
 @Router.get("/key")
 async def get_public_key():
+    logger.debug("[LOG:REST] - GET '/key' endpoint called.")
     return {"public_key": JWTRSAProvider.get_public_key_pem()}
 
 

@@ -45,19 +45,17 @@ async def create_admin(
 async def lifespan(__app: FastAPI):
     """Lifespan context manager."""
     try:
-        logger.info("Starting up")
+        logger.info("[LOG:AUTH] - Starting up")
         try:
-            logger.info("Creating database tables")
+            logger.info("[LOG:AUTH] - Creating database tables")
             async with Engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
-            logger.info("Creating default admin.")
+            logger.info("[LOG:AUTH] - Creating default admin.")
             async with SessionLocal() as db:
                 await create_admin(db)
         except Exception:
-            logger.error(
-                "Could not create tables at startup",
-            )
-        logger.info("Registering service to Consul...")
+            logger.error("[LOG:AUTH] - Could not create tables at startup")
+        logger.info("[LOG:AUTH] - Registering service to Consul...")
         try:
             service_port = int(os.getenv("PORT", "8000"))
             consul = ConsulClient(logger=logger)
@@ -67,16 +65,16 @@ async def lifespan(__app: FastAPI):
                 health_path="/auth/health"
             )
         except Exception as e:
-            logger.error(f"Failed to register with Consul: {e}")
+            logger.error(f"[LOG:AUTH] - Failed to register with Consul: Reason={e}", exc_info=True)
         yield
     finally:
-        logger.info("Shutting down database")
+        logger.info("[LOG:AUTH] - Shutting down database")
         await Engine.dispose()
 
 
 # OpenAPI Documentation ############################################################################
 APP_VERSION = os.getenv("APP_VERSION", "2.0.0")
-logger.info("Running app version %s", APP_VERSION)
+logger.info("[LOG:AUTH] - Running app version %s", APP_VERSION)
 DESCRIPTION = """
 Auth microservice
 """
@@ -111,6 +109,6 @@ def start_server():
     config.bind = [os.getenv("HOST", "0.0.0.0") + ":" + os.getenv("PORT", "8000")]
     config.workers = int(os.getenv("WORKERS", "1"))
 
-    logger.info("Starting Hypercorn server on %s", config.bind)
+    logger.info("[LOG:AUTH] - Starting Hypercorn server on %s", config.bind)
 
     asyncio.run(serve(APP, config)) # type: ignore
