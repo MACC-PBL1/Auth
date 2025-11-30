@@ -20,7 +20,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import asyncio
 import logging.config
 import os
-from chassis.logging.rabbitmq_logging import RabbitMQHandler
 
 logging.config.fileConfig(os.path.join(os.path.dirname(__file__), "logging.ini"))
 
