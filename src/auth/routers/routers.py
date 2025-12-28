@@ -10,6 +10,7 @@ from ..sql import (
     RegisterRequest,
     TokenResponse,
     UserResponse,
+    get_users,
 )
 from .utils import (
     hash_password,
@@ -30,6 +31,7 @@ from fastapi import (
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 import socket
+from typing import List
 
 logger = logging.getLogger(__name__)
 Router = APIRouter(prefix="/auth")
@@ -187,3 +189,37 @@ async def get_public_key():
 
 
 # TODO: MAYBE A CRUD
+
+@Router.get(
+    "/users",
+    response_model=List[UserResponse],
+    summary="List all users (admin only)",
+)
+async def list_users(
+    db: AsyncSession = Depends(get_db),
+    token_data: dict = Depends(
+        create_jwt_verifier(lambda: JWTRSAProvider.get_public_key_pem(), logger)
+    )
+):
+    logger.debug("[LOG:REST] - GET '/users' endpoint called.")
+
+    user_role = token_data.get("role")
+    if user_role != "admin":
+        raise_and_log_error(
+            logger,
+            status.HTTP_401_UNAUTHORIZED,
+            f"Access denied: user_role={user_role} (admin required)",
+        )
+
+    users = await get_users(db)
+
+    logger.info(f"[LOG:REST] - {len(users)} users retrieved")
+
+    return [
+        UserResponse(
+            id=user.id,
+            email=user.username,
+            role=user.role,
+        )
+        for user in users
+    ]

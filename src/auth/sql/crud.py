@@ -41,3 +41,7 @@ async def get_user_by_username(
         db=db,
         stmt=select(User).where(User.username == username)
     )
+
+async def get_users(db: AsyncSession) -> list[User]:
+    result = await db.execute(select(User))
+    return result.scalars().all()
