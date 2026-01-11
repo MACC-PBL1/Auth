@@ -53,7 +53,7 @@ class JWTRSAProvider:
                 public_exponent=public_exponent,
                 key_size=key_size,
             )
-            JWTRSAProvider.send_ready()
+            JWTRSAProvider._send_ready()
 
 
     @staticmethod
@@ -135,7 +135,7 @@ class JWTRSAProvider:
             raise ValueError(f"Invalid token: {e}")
         
     @staticmethod
-    def send_ready() -> None:
+    def _send_ready() -> None:
         with RabbitMQPublisher(
             queue="client.public_key.signal",
             rabbitmq_config=RABBITMQ_CONFIG,

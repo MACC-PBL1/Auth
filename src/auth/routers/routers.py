@@ -180,15 +180,11 @@ async def register(
         email=new_user.username,
         role=new_user.role,
     )
-    
 
 @Router.get("/key")
 async def get_public_key():
     logger.debug("[LOG:REST] - GET '/key' endpoint called.")
     return {"public_key": JWTRSAProvider.get_public_key_pem()}
-
-
-# TODO: MAYBE A CRUD
 
 @Router.get(
     "/users",
