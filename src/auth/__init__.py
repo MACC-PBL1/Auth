@@ -8,7 +8,7 @@ from chassis.sql import (
     Engine,
     SessionLocal,
 )
-from chassis.consul import ConsulClient 
+from chassis.consul import CONSUL_CLIENT 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from hypercorn.asyncio import serve
@@ -53,10 +53,6 @@ async def create_admin(
 @asynccontextmanager
 async def lifespan(__app: FastAPI):
     """Lifespan context manager."""
-    consul = ConsulClient(
-        consul_host=os.getenv("CONSUL_HOST", "localhost"),
-        consul_port=int(os.getenv("CONSUL_PORT", 8500)),
-    )
     try:
         logger.info("[LOG:AUTH] - Starting up")
         try:
@@ -70,7 +66,7 @@ async def lifespan(__app: FastAPI):
             logger.error("[LOG:AUTH] - Could not create tables at startup")
         logger.info("[LOG:AUTH] - Registering service to Consul...")
         try:
-            consul.register_service(
+            CONSUL_CLIENT.register_service(
                 service_name="auth",
                 ec2_address=os.getenv("HOST_IP", "localhost"),
                 service_port=int(os.getenv("HOST_PORT", 80)),
@@ -80,7 +76,7 @@ async def lifespan(__app: FastAPI):
         yield
     finally:
         logger.info("[LOG:AUTH] - Shutting down database")
-        consul.deregister_service()
+        CONSUL_CLIENT.deregister_service()
         await Engine.dispose()
 
 # OpenAPI Documentation ############################################################################
