@@ -73,7 +73,7 @@ async def lifespan(__app: FastAPI):
             consul.register_service(
                 service_name="auth",
                 ec2_address=os.getenv("HOST_IP", "localhost"),
-                haproxy_port=int(os.getenv("HOST_PORT", 80)),
+                service_port=int(os.getenv("HOST_PORT", 80)),
             )
         except Exception as e:
             logger.error(f"[LOG:AUTH] - Failed to register with Consul: Reason={e}", exc_info=True)
