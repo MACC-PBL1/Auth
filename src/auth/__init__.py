@@ -53,6 +53,10 @@ async def create_admin(
 @asynccontextmanager
 async def lifespan(__app: FastAPI):
     """Lifespan context manager."""
+    consul = ConsulClient(
+        consul_host=os.getenv("CONSUL_HOST", "localhost"),
+        consul_port=int(os.getenv("CONSUL_PORT", 8500)),
+    )
     try:
         logger.info("[LOG:AUTH] - Starting up")
         try:
@@ -66,20 +70,18 @@ async def lifespan(__app: FastAPI):
             logger.error("[LOG:AUTH] - Could not create tables at startup")
         logger.info("[LOG:AUTH] - Registering service to Consul...")
         try:
-            service_port = int(os.getenv("PORT", "8000"))
-            consul = ConsulClient(logger=logger)
             consul.register_service(
-                service_name="auth", 
-                port=service_port, 
-                health_path="/auth/health"
+                service_name="auth",
+                ec2_address=os.getenv("HOST_IP", "localhost"),
+                haproxy_port=int(os.getenv("HOST_PORT", 80)),
             )
         except Exception as e:
             logger.error(f"[LOG:AUTH] - Failed to register with Consul: Reason={e}", exc_info=True)
         yield
     finally:
         logger.info("[LOG:AUTH] - Shutting down database")
+        consul.deregister_service()
         await Engine.dispose()
-
 
 # OpenAPI Documentation ############################################################################
 APP_VERSION = os.getenv("APP_VERSION", "2.0.0")
