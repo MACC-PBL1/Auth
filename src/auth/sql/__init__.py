@@ -3,7 +3,9 @@ from .crud import (
     get_user_by_id,
     get_user_by_username,
     get_users,
+    update_status,
 )
+from .models import User
 from .schemas import (
     LoginRequest,
     Message,
@@ -23,5 +25,7 @@ __all__: list[str] = [
     "RefreshRequest",
     "RegisterRequest",
     "TokenResponse",
+    "User",
+    "update_status",
     "UserResponse",
 ]

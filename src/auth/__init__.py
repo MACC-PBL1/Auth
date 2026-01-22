@@ -1,4 +1,7 @@
-from .global_vars import RABBITMQ_CONFIG
+from .global_vars import (
+    LISTENING_QUEUES,
+    RABBITMQ_CONFIG,
+)
 from chassis.logging import (
     get_logger,
     setup_rabbitmq_logging,
@@ -8,12 +11,14 @@ from chassis.sql import (
     Engine,
     SessionLocal,
 )
+from chassis.messaging import start_rabbitmq_listener
 from chassis.consul import CONSUL_CLIENT 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from hypercorn.asyncio import serve
 from hypercorn.config import Config
 from sqlalchemy.ext.asyncio import AsyncSession
+from threading import Thread
 import asyncio
 import logging.config
 import os
@@ -35,6 +40,7 @@ from .sql import (
     create_user,
     get_user_by_username,
 )
+from .events import *
 
 # Create admin user
 async def create_admin(
@@ -65,6 +71,19 @@ async def lifespan(__app: FastAPI):
                 await create_admin(db)
         except Exception:
             logger.error("[LOG:AUTH] - Could not create tables at startup")
+        logger.info("[LOG:WAREHOUSE] - Starting RabbitMQ listeners")
+        try:
+            for _, queue in LISTENING_QUEUES.items():
+                Thread(
+                    target=start_rabbitmq_listener,
+                    args=(queue, RABBITMQ_CONFIG),
+                    daemon=True,
+                ).start()
+        except Exception as e:
+            logger.error(
+                f"[LOG:WAREHOUSE] - Could not start RabbitMQ listeners: {e}",
+                exc_info=True
+            )
         logger.info("[LOG:AUTH] - Registering service to Consul...")
         try:
             CONSUL_CLIENT.register_service(

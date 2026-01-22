@@ -1,6 +1,11 @@
 from chassis.messaging import RabbitMQConfig
 from pathlib import Path
+from typing import (
+    Dict, 
+    LiteralString,
+)
 import os
+import socket
 
 # RabbitMQ Configuration ###########################################################################
 RABBITMQ_CONFIG: RabbitMQConfig = {
@@ -13,4 +18,8 @@ RABBITMQ_CONFIG: RabbitMQConfig = {
     "client_cert": Path(client_cert_path) if (client_cert_path := os.getenv("RABBITMQ_CLIENT_CERT_PATH", None)) is not None else None,
     "client_key": Path(client_key_path) if (client_key_path := os.getenv("RABBITMQ_CLIENT_KEY_PATH", None)) is not None else None,
     "prefetch_count": int(os.getenv("RABBITMQ_PREFETCH_COUNT", 10))
+}
+
+LISTENING_QUEUES: Dict[LiteralString, str] = {
+    "compromised": "honeypot.compromised",
 }

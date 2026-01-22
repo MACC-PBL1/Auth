@@ -9,6 +9,7 @@ from ..sql import (
     RefreshRequest,
     RegisterRequest,
     TokenResponse,
+    User,
     UserResponse,
     get_users,
 )
@@ -98,6 +99,9 @@ async def login(
     
     assert maybe_user is not None, "User data should not be None"
 
+    if maybe_user.status == User.STATUS_SUSPENDED:
+        raise_and_log_error(logger, status.HTTP_401_UNAUTHORIZED, "[LOG:REST] - User suspended")
+
     logger.info(f"[LOG:REST] - User logged in: client_id={maybe_user.id}, username={maybe_user.username}")
     
     access_token = JWTRSAProvider.create_access_token(maybe_user.id, maybe_user.role, 15)
@@ -171,7 +175,7 @@ async def register(
     )
 
     logger.info(
-        "[LOG:REST] - User registered: ",
+        "[LOG:REST] - User registered: "
         f"id={new_user.id} username={new_user.username}, role={new_user.role}"
     )
 
